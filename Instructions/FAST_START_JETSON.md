@@ -18,8 +18,8 @@ sudo reboot
 sudo apt update
 sudo apt install vino
 # Enable the VNC server to start each time you log in
-mkdir -p ~/.config/autostart
-cp /usr/share/applications/vino-server.desktop ~/.config/autostart
+cd /usr/lib/systemd/user/graphical-session.target.wants
+sudo ln -s ../vino-server.service ./.
 
 # Configure the VNC server
 gsettings set org.gnome.Vino prompt-enabled false
@@ -32,34 +32,51 @@ gsettings set org.gnome.Vino vnc-password $(echo -n 'thepassword'|base64)
 
 # Reboot the system so that the settings take effect
 sudo reboot
+
+# Settings → Users → Automatic Login
 ```
 6. Установить псевдо-дисплей: 
+
 ```bash
-sudo apt-get install xserver-xorg-video-dummy
+# Settings → Sharing → Screen Sharing → set ‘Active’
+sudo apt install xserver-xorg-video-dummy
 ```
-7. Настроить псевдо-дисплей:
+7. Создать конфиг
+```bash
+cd /etc/X11
+sudo vim xorg.conf.dummy
+```
+8. Настроить псевдо-дисплей:
 ```bash
 Section "Device"
-    Identifier  "Configured Video Device"
-    Driver      "dummy"
-    # Default is 4MiB, this sets it to 16MiB
-    VideoRam    16384
+    Identifier "DummyDevice"
+    Driver "dummy"
+    VideoRam 256000
 EndSection
-
-Section "Monitor"
-    Identifier  "Configured Monitor"
-    HorizSync 31.5-48.5
-    VertRefresh 50-70
-EndSection
-
+ 
 Section "Screen"
-    Identifier  "Default Screen"
-    Monitor     "Configured Monitor"
-    Device      "Configured Video Device"
+    Identifier "DummyScreen"
+    Device "DummyDevice"
+    Monitor "DummyMonitor"
     DefaultDepth 24
     SubSection "Display"
-    	Depth 24
-    	Modes "1920x1080"
+        Depth 24
+        Modes "1920x1080_60.0"
     EndSubSection
 EndSection
+ 
+Section "Monitor"
+    Identifier "DummyMonitor"
+    HorizSync 30-70
+    VertRefresh 50-75
+    ModeLine "1920x1080" 148.50 1920 2448 2492 2640 1080 1084 1089 1125 +Hsync +Vsync
+EndSection
+
+```
+9. Обновить */etc/X11/xorg.conf*
+```bash
+sudo cp xorg.conf xorg.conf.backup
+sudo cp xorg.conf.dummy xorg.conf
+
+sudo reboot
 ```
